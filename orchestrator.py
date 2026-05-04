@@ -105,12 +105,7 @@ async def validate_node(state: PipelineState) -> dict:
 # ---------------------------------------------------------------------------
 
 def route_after_validation(state: PipelineState) -> str:
-    """
-    Route after the validator node.
-    - 'passed' or 'warning' → END (return the answer to the caller)
-    - 'failed'              → END (caller gets the error; no infinite retry)
-    """
-    # Extension point: add a "retry" branch here if confidence is too low
+    # Always end — retry logic can be added here once 'retries' is added to PipelineState
     return END
 
 

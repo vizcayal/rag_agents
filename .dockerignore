@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.git/
+ai_act.pdf
+docs/
+*.md
+*.lock
+Dockerfile*
+ingest_pdf.py

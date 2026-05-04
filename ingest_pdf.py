@@ -22,19 +22,12 @@ with open(pdf_path, "rb") as f:
 
 # 2. Ingestar en el servidor
 payload = {
-    "method": "tools/call",
-    "params": {
-        "name": "ingest_document",
-        "arguments": {
-            "document_id": document_id,
-            "chunks": chunks
-        }
-    },
-    "id": 1
+    "document_id": document_id,
+    "chunks": chunks,
 }
 
 response = requests.post(
-    "http://localhost:8001/mcp",
-    json=payload
+    "http://localhost:8001/ingest",
+    json=payload,
 )
 print(response.json())

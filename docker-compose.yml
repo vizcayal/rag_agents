@@ -1,0 +1,27 @@
+
+
+services:
+  vectordb:
+    build:
+      context: .
+      dockerfile: Dockerfile.vectordb
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./chroma_data:/app/chroma_data
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  rag-main:
+    build:
+      context: .
+      dockerfile: Dockerfile.main
+    ports:
+      - "8000:8000"
+    environment:
+      # Set ANTHROPIC_API_KEY in your shell or in a .env file (never commit the key)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # Docker Compose automatically sets up DNS, so we can use the service name 'vectordb'
+      - VECTORDB_URL=http://vectordb:8001
+    depends_on:
+      - vectordb
