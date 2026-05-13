@@ -1,0 +1,11 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.claude
+agentcore/.cache
+agentcore/.cli
+node_modules
+dist
+build

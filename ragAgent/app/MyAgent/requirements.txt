@@ -1,0 +1,5 @@
+bedrock-agentcore
+pydantic
+boto3
+httpx
+langgraph

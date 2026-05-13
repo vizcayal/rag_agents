@@ -1,0 +1,16 @@
+{
+  "targets": {
+    "default": {
+      "resources": {
+        "runtimes": {
+          "MyAgent": {
+            "runtimeId": "ragAgent_MyAgent-320L5P7elr",
+            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-320L5P7elr",
+            "roleArn": "arn:aws:iam::911268715109:role/AgentCore-ragAgent-defaul-ApplicationAgentMyAgentRu-HlnlwRQRvt56"
+          }
+        },
+        "stackName": "AgentCore-ragAgent-default"
+      }
+    }
+  }
+}
