@@ -5,8 +5,8 @@ import os
 import uuid
 
 # Configuración de la página
-st.set_page_config(page_title="RAG Agent UI", page_icon="🤖")
-st.title("🤖 RAG Agent: EU AI Act Explorer")
+st.set_page_config(page_title="CONSULTA DE LA LEY DE IA EN EUROPA", page_icon="🤖")
+st.title("🤖 CONSULTA DE LA LEY DE IA EN EUROPA")
 
 # Configuración de AWS desde variables de entorno
 RUNTIME_ARN = os.environ.get("RUNTIME_ARN", "arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-320L5P7elr")
@@ -30,13 +30,9 @@ if "session_id" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-        if "citations" in message:
-            with st.expander("Ver citas"):
-                for chunk in message["citations"]:
-                    st.info(f"ID: {chunk}")
 
 # Entrada del usuario
-if prompt := st.chat_input("¿Qué quieres saber sobre la Ley de IA?"):
+if prompt := st.chat_input("¿Qué quieres saber sobre la Ley de IA? (ej. What is AI?)", key="chat_input"):
     # Agregar mensaje del usuario al historial
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -49,41 +45,56 @@ if prompt := st.chat_input("¿Qué quieres saber sobre la Ley de IA?"):
                 # Llamar al runtime de AgentCore
                 response = client.invoke_agent_runtime(
                     agentRuntimeArn=RUNTIME_ARN,
-                    payload=json.dumps({"prompt": prompt}),
+                    payload=json.dumps({"prompt": prompt}).encode("utf-8"),
                     contentType="application/json",
                     runtimeSessionId=st.session_state.get("session_id", str(uuid.uuid4())),
                 )
 
-                # La respuesta usa 'response' (EventStream), no 'body'
-                events = []
+                # El cliente 'bedrock-agentcore' devuelve un EventStream en el campo 'response'
+                result_raw = ""
                 for event in response.get("response", []):
+                    # Si el evento son bytes directos (StreamingBody o fallback)
                     if isinstance(event, bytes):
-                        try:
-                            events.append(event.decode("utf-8"))
-                        except UnicodeDecodeError:
-                            pass
-                    else:
-                        events.append(event)
+                        result_raw += event.decode("utf-8")
+                    elif isinstance(event, str):
+                        result_raw += event
+                    # Si el evento es un diccionario (EventStream estándar)
+                    elif isinstance(event, dict):
+                        if 'chunk' in event:
+                            chunk_data = event['chunk'].get('bytes', b'')
+                            if isinstance(chunk_data, bytes):
+                                result_raw += chunk_data.decode("utf-8")
+                            else:
+                                result_raw += str(chunk_data)
+                        elif 'internalServerException' in event:
+                            st.error(f"Error interno del servidor: {event['internalServerException']}")
+                        elif 'badRequestException' in event:
+                            st.error(f"Petición inválida: {event['badRequestException']}")
 
-                result_raw = "".join(str(e) for e in events)
+                if not result_raw:
+                    st.warning("El agente devolvió una respuesta vacía.")
+                    st.stop()
+
                 result = json.loads(result_raw)
                 
-                answer = result.get("response", "No se generó respuesta.")
-                citations = result.get("cited_chunks", [])
+                # Extraer respuesta y citas
+                answer = result.get("response") or result.get("answer")
+                citations = result.get("cited_chunks") or result.get("cited_chunk_ids", [])
                 
+                if answer is None:
+                    st.write("---")
+                    st.write("Raw Result from Agent:", result)
+                    answer = "No se pudo extraer una respuesta del payload del agente."
+
                 st.markdown(answer)
-                
-                if citations:
-                    with st.expander("Ver citas"):
-                        for chunk in citations:
-                            st.info(f"ID: {chunk}")
                 
                 # Guardar respuesta en el historial
                 st.session_state.messages.append({
                     "role": "assistant", 
-                    "content": answer,
-                    "citations": citations
+                    "content": answer
                 })
                 
             except Exception as e:
+                import traceback
                 st.error(f"Error al llamar al agente: {str(e)}")
+                st.code(traceback.format_exc())

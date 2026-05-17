@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Agent — Arquitectura e Infraestructura</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .deck { width: 100%; height: 100vh; position: relative; }
+
+  .slide {
+    display: none;
+    position: absolute;
+    inset: 0;
+    padding: 60px 80px;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .slide.active { display: flex; }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 40px;
+    padding: 10px 24px;
+    z-index: 100;
+  }
+  .nav button {
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color .2s, background .2s;
+  }
+  .nav button:hover { color: #e6edf3; background: #21262d; }
+  .nav button:disabled { opacity: 0.3; cursor: default; }
+  #counter { color: #8b949e; font-size: 13px; min-width: 48px; text-align: center; }
+
+  /* ── COLORS ── */
+  .accent  { color: #58a6ff; }
+  .orange  { color: #f78166; }
+  .green   { color: #3fb950; }
+  .yellow  { color: #e3b341; }
+  .purple  { color: #bc8cff; }
+  .muted   { color: #8b949e; }
+
+  /* ── SLIDE 1: TITLE ── */
+  .slide-title {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+    text-align: center;
+    align-items: center;
+  }
+  .slide-title .logo { font-size: 64px; margin-bottom: 16px; }
+  .slide-title h1 { font-size: 42px; font-weight: 700; margin-bottom: 12px; }
+  .slide-title h1 span { color: #58a6ff; }
+  .slide-title .subtitle { font-size: 20px; color: #8b949e; margin-bottom: 40px; }
+  .tag {
+    display: inline-block;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    color: #8b949e;
+    margin: 4px;
+  }
+
+  /* ── HEADINGS ── */
+  .slide-title-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .slide-title-bar .icon { font-size: 28px; }
+  .slide-title-bar h2 { font-size: 28px; font-weight: 700; }
+  .slide-title-bar .line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, #30363d, transparent);
+  }
+
+  /* ── ARCH OVERVIEW ── */
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .arch-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 20px 28px;
+    text-align: center;
+    min-width: 140px;
+  }
+  .arch-box .icon { font-size: 32px; margin-bottom: 8px; }
+  .arch-box .label { font-size: 13px; font-weight: 600; color: #e6edf3; }
+  .arch-box .sublabel { font-size: 11px; color: #8b949e; margin-top: 4px; }
+  .arch-arrow {
+    font-size: 24px;
+    color: #30363d;
+    padding: 0 8px;
+  }
+  .arch-box.highlight { border-color: #58a6ff; }
+  .arch-box.highlight .icon { filter: none; }
+
+  /* ── PIPELINE ── */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 24px 0;
+  }
+  .pipeline-step {
+    flex: 1;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px 20px;
+    text-align: center;
+    position: relative;
+  }
+  .pipeline-step + .pipeline-step { margin-left: 0; }
+  .pipeline-step::after {
+    content: '→';
+    position: absolute;
+    right: -18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #58a6ff;
+    font-size: 20px;
+    z-index: 10;
+  }
+  .pipeline-step:last-child::after { display: none; }
+  .pipeline-step .num {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 28px;
+    margin-bottom: 10px;
+  }
+  .pipeline-step h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .pipeline-step p { font-size: 12px; color: #8b949e; line-height: 1.5; }
+  .pipeline-step .file { font-size: 11px; margin-top: 10px; background: #0d1117; border-radius: 6px; padding: 4px 8px; display: inline-block; }
+
+  /* ── INFRA GRID ── */
+  .infra-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .infra-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .infra-card .service-icon { font-size: 28px; margin-bottom: 10px; }
+  .infra-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .infra-card p { font-size: 12px; color: #8b949e; line-height: 1.5; }
+  .infra-card .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  /* ── DEPLOY FLOW ── */
+  .deploy-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .deploy-step {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .deploy-step .step-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .deploy-step .step-info { flex: 1; }
+  .deploy-step .step-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .deploy-step .step-info p { font-size: 12px; color: #8b949e; }
+  .deploy-step code {
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #79c0ff;
+    white-space: nowrap;
+  }
+
+  /* ── SERVICES TABLE ── */
+  .services-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .service-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .service-row .sicon { font-size: 24px; flex-shrink: 0; }
+  .service-row h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .service-row p { font-size: 12px; color: #8b949e; line-height: 1.4; }
+
+  /* ── CONCLUSION ── */
+  .conclusion-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .conclusion-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .conclusion-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .conclusion-card ul { list-style: none; }
+  .conclusion-card ul li {
+    font-size: 13px;
+    color: #8b949e;
+    padding: 4px 0;
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .conclusion-card ul li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: #58a6ff;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 1 — PORTADA
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-title active">
+    <div class="logo">🤖</div>
+    <h1>RAG Agent: <span>EU AI Act Explorer</span></h1>
+    <p class="subtitle">Arquitectura e Infraestructura AWS</p>
+    <div>
+      <span class="tag">🐍 Python</span>
+      <span class="tag">🦜 LangGraph</span>
+      <span class="tag">☁️ AWS Bedrock</span>
+      <span class="tag">🐳 Docker / ECS</span>
+      <span class="tag">🎨 Streamlit</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 2 — ARQUITECTURA GENERAL
+  ══════════════════════════════════════════ -->
+  <div class="slide">
+    <div class="slide-title-bar">
+      <span class="icon">🗺️</span>
+      <h2>Arquitectura General</h2>
+      <div class="line"></div>
+    </div>
+
+    <div class="arch-flow">
+      <div class="arch-box">
+        <div class="icon">👤</div>
+        <div class="label">Usuario</div>
+        <div class="sublabel">Navegador web</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box highlight">
+        <div class="icon">🎨</div>
+        <div class="label accent">Streamlit UI</div>
+        <div class="sublabel">ECS Fargate</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box highlight">
+        <div class="icon">⚡</div>
+        <div class="label accent">AgentCore Runtime</div>
+        <div class="sublabel">Bedrock AgentCore</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box">
+        <div class="icon">🔍</div>
+        <div class="label">Knowledge Base</div>
+        <div class="sublabel">Bedrock KB + S3</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px 28px;">
+      <p style="font-size: 13px; color: #8b949e; line-height: 1.8;">
+        El usuario hace una pregunta en la <span class="accent">UI de Streamlit</span> (corriendo en ECS).
+        La UI llama al <span class="accent">AgentCore Runtime</span> via boto3.
+        El Runtime ejecuta el <span class="yellow">pipeline LangGraph</span> que recupera chunks de la
+        <span class="green">Knowledge Base</span>, razona con Nova Lite, y valida la respuesta antes de devolverla.
+      </p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 3 — PIPELINE DEL AGENTE
+  ══════════════════════════════════════════ -->
+  <div class="slide">
+    <div class="slide-title-bar">
+      <span class="icon">🔗</span>
+      <h2>Pipeline del Agente <span class="muted" style="font-size:18px; font-weight:400">(LangGraph StateGraph)</span></h2>
+      <div class="line"></div>
+    </div>
+
+    <div class="pipeline">
+      <div class="pipeline-step" style="border-color: #58a6ff;">
+        <div class="num" style="background:#1f3a5f; color:#58a6ff;">1</div>
+        <h3 class="accent">Retriever</h3>
+        <p>Busca los chunks más relevantes en Bedrock Knowledge Bases usando búsqueda vectorial</p>
+        <div class="file muted">retriever.py</div>
+      </div>
+      <div style="width:36px; flex-shrink:0;"></div>
+      <div class="pipeline-step" style="border-color: #e3b341;">
+        <div class="num" style="background:#3d2e0a; color:#e3b341;">2</div>
+        <h3 class="yellow">Reasoner</h3>
+        <p>Envía los chunks + pregunta a Amazon Nova Lite. Genera respuesta con chain-of-thought en JSON</p>
+        <div class="file muted">reasoner.py</div>
+      </div>
+      <div style="width:36px; flex-shrink:0;"></div>
+      <div class="pipeline-step" style="border-color: #3fb950;">
+        <div class="num" style="background:#0d2a16; color:#3fb950;">3</div>
+        <h3 class="green">Validator</h3>
+        <p>Verifica que las citas existan en el contexto. Detecta alucinaciones y asigna confianza</p>
+        <div class="file muted">validator.py</div>
+      </div>
+    </div>
+
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px 20px;">
+      <p style="font-size: 12px; color: #8b949e;">
+        <span class="accent">Estado compartido</span> (<code style="background:#0d1117; padding:2px 6px; border-radius:4px; color:#79c0ff;">AgentState</code>):
+        query → retrieved_chunks → reasoner_output → validator_output → respuesta final con confianza
+      </p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 4 — INFRAESTRUCTURA AWS
+  ══════════════════════════════════════════ -->
+  <div class="slide">
+    <div class="slide-title-bar">
+      <span class="icon">☁️</span>
+      <h2>Infraestructura AWS</h2>
+      <div class="line"></div>
+    </div>
+
+    <div class="infra-grid">
+      <div class="infra-card" style="border-color: #58a6ff;">
+        <div class="service-icon">🐳</div>
+        <h3 class="accent">Amazon ECR</h3>
+        <p>Registro privado de imágenes Docker. Almacena la imagen de la UI de Streamlit.</p>
+        <div class="badge" style="background:#1f3a5f; color:#58a6ff;">rag-agent-ui</div>
+      </div>
+      <div class="infra-card" style="border-color: #e3b341;">
+        <div class="service-icon">⚙️</div>
+        <h3 class="yellow">Amazon ECS Fargate</h3>
+        <p>Corre el contenedor de Streamlit sin gestionar servidores. Cluster: default, Service: rag-agent-ui.</p>
+        <div class="badge" style="background:#3d2e0a; color:#e3b341;">Puerto 8501</div>
+      </div>
+      <div class="infra-card" style="border-color: #3fb950;">
+        <div class="service-icon">⚡</div>
+        <h3 class="green">Bedrock AgentCore</h3>
+        <p>Runtime gestionado para el agente LangGraph. Express mode: serverless, escala automáticamente.</p>
+        <div class="badge" style="background:#0d2a16; color:#3fb950;">ragAgent_MyAgent</div>
+      </div>
+      <div class="infra-card" style="border-color: #bc8cff;">
+        <div class="service-icon">📚</div>
+        <h3 class="purple">Bedrock Knowledge Base</h3>
+        <p>Base de conocimiento vectorial sobre el EU AI Act. Almacenada en S3, indexada con embeddings.</p>
+        <div class="badge" style="background:#2d1f5e; color:#bc8cff;">KNOWLEDGE_BASE_ID</div>
+      </div>
+      <div class="infra-card" style="border-color: #f78166;">
+        <div class="service-icon">🧠</div>
+        <h3 class="orange">Amazon Nova Lite</h3>
+        <p>Modelo LLM de AWS usado por el Reasoner para generar respuestas con chain-of-thought.</p>
+        <div class="badge" style="background:#3d1a0f; color:#f78166;">bedrock-runtime</div>
+      </div>
+      <div class="infra-card">
+        <div class="service-icon">🔐</div>
+        <h3>IAM Roles</h3>
+        <p>El AgentCore tiene un rol IAM con permisos para acceder a Bedrock KB, S3 y invocar Nova Lite.</p>
+        <div class="badge" style="background:#21262d; color:#8b949e;">AgentCore-ragAgent</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 5 — FLUJO DE DEPLOY
+  ══════════════════════════════════════════ -->
+  <div class="slide">
+    <div class="slide-title-bar">
+      <span class="icon">🚀</span>
+      <h2>Flujo de Deploy de la UI</h2>
+      <div class="line"></div>
+    </div>
+
+    <div class="deploy-steps">
+      <div class="deploy-step">
+        <div class="step-num" style="background:#1f3a5f; color:#58a6ff;">1</div>
+        <div class="step-info">
+          <h4 class="accent">Build — Construir imagen Docker localmente</h4>
+          <p>Empaqueta el código de Streamlit + dependencias en una imagen</p>
+        </div>
+        <code>docker build -t rag-agent-ui .</code>
+      </div>
+      <div class="deploy-step">
+        <div class="step-num" style="background:#3d2e0a; color:#e3b341;">2</div>
+        <div class="step-info">
+          <h4 class="yellow">Login — Autenticarse en ECR</h4>
+          <p>Obtiene credenciales temporales de AWS para subir imágenes</p>
+        </div>
+        <code>aws ecr get-login-password | docker login</code>
+      </div>
+      <div class="deploy-step">
+        <div class="step-num" style="background:#0d2a16; color:#3fb950;">3</div>
+        <div class="step-info">
+          <h4 class="green">Push — Subir imagen a ECR</h4>
+          <p>Tag con la URL del repositorio y sube la imagen</p>
+        </div>
+        <code>docker push 911268715109.dkr.ecr...</code>
+      </div>
+      <div class="deploy-step">
+        <div class="step-num" style="background:#2d1f5e; color:#bc8cff;">4</div>
+        <div class="step-info">
+          <h4 class="purple">Deploy — Forzar nuevo despliegue en ECS</h4>
+          <p>ECS detiene el contenedor viejo y levanta uno nuevo con la imagen actualizada</p>
+        </div>
+        <code>aws ecs update-service --force-new-deployment</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 6 — RESUMEN DE SERVICIOS
+  ══════════════════════════════════════════ -->
+  <div class="slide">
+    <div class="slide-title-bar">
+      <span class="icon">📋</span>
+      <h2>Resumen de Servicios AWS</h2>
+      <div class="line"></div>
+    </div>
+
+    <div class="services-grid">
+      <div class="service-row">
+        <div class="sicon">🐳</div>
+        <div>
+          <h4 class="accent">ECR — Elastic Container Registry</h4>
+          <p>Almacena imágenes Docker privadas. Cada push sube una nueva versión de tu app.</p>
+        </div>
+      </div>
+      <div class="service-row">
+        <div class="sicon">⚙️</div>
+        <div>
+          <h4 class="yellow">ECS — Elastic Container Service</h4>
+          <p>Orquesta contenedores Docker. Fargate elimina la necesidad de gestionar servidores.</p>
+        </div>
+      </div>
+      <div class="service-row">
+        <div class="sicon">⚡</div>
+        <div>
+          <h4 class="green">Bedrock AgentCore Runtime</h4>
+          <p>Ejecuta agentes de IA en modo serverless. Express mode para baja latencia.</p>
+        </div>
+      </div>
+      <div class="service-row">
+        <div class="sicon">📚</div>
+        <div>
+          <h4 class="purple">Bedrock Knowledge Bases</h4>
+          <p>RAG gestionado: indexa documentos en S3 y expone búsqueda vectorial con una API.</p>
+        </div>
+      </div>
+      <div class="service-row">
+        <div class="sicon">🧠</div>
+        <div>
+          <h4 class="orange">Amazon Nova Lite</h4>
+          <p>LLM de AWS optimizado para velocidad y costo. Accedido via Bedrock Runtime converse API.</p>
+        </div>
+      </div>
+      <div class="service-row">
+        <div class="sicon">🔐</div>
+        <div>
+          <h4>IAM — Identity and Access Management</h4>
+          <p>Controla qué servicios pueden hablar con cuáles. El agente usa un rol con permisos mínimos.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 7 — CONCLUSIÓN
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);">
+    <div class="slide-title-bar">
+      <span class="icon">✅</span>
+      <h2>Lo que construiste</h2>
+      <div class="line"></div>
+    </div>
+
+    <div class="conclusion-grid">
+      <div class="conclusion-card" style="border-color: #58a6ff;">
+        <h3 class="accent">🤖 Agente RAG</h3>
+        <ul>
+          <li>Pipeline LangGraph con 3 nodos (Retrieve → Reason → Validate)</li>
+          <li>Búsqueda vectorial sobre documentos del EU AI Act</li>
+          <li>Razonamiento con chain-of-thought y citación de fuentes</li>
+          <li>Validación anti-alucinaciones con score de confianza</li>
+        </ul>
+      </div>
+      <div class="conclusion-card" style="border-color: #3fb950;">
+        <h3 class="green">☁️ Infraestructura AWS</h3>
+        <ul>
+          <li>Agente serverless en Bedrock AgentCore (Express mode)</li>
+          <li>UI containerizada en ECS Fargate</li>
+          <li>Imágenes Docker versionadas en ECR</li>
+          <li>Deploy reproducible con 4 comandos AWS CLI</li>
+        </ul>
+      </div>
+      <div class="conclusion-card" style="border-color: #e3b341;">
+        <h3 class="yellow">🎨 UI Streamlit</h3>
+        <ul>
+          <li>Chat con historial de conversación</li>
+          <li>Muestra citas de los documentos fuente</li>
+          <li>Se comunica con AgentCore via boto3 EventStream</li>
+          <li>Health check integrado para ECS</li>
+        </ul>
+      </div>
+      <div class="conclusion-card" style="border-color: #bc8cff;">
+        <h3 class="purple">📐 Buenas prácticas</h3>
+        <ul>
+          <li>Imports lazy para inicialización rápida (&lt;30s)</li>
+          <li>Degradación graceful si MCP validator no disponible</li>
+          <li>Variables de entorno para config (ARN, región)</li>
+          <li>Separación de responsabilidades por archivo</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.deck -->
+
+<!-- ── NAVIGATION ── -->
+<div class="nav">
+  <button id="prev" onclick="go(-1)" disabled>←</button>
+  <span id="counter">1 / 7</span>
+  <button id="next" onclick="go(1)">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+
+  function go(dir) {
+    slides[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(slides.length - 1, cur + dir));
+    slides[cur].classList.add('active');
+    document.getElementById('counter').textContent = `${cur + 1} / ${slides.length}`;
+    document.getElementById('prev').disabled = cur === 0;
+    document.getElementById('next').disabled = cur === slides.length - 1;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+  });
+</script>
+
+</body>
+</html>

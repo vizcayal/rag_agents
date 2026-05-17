@@ -57,3 +57,4 @@ async def invoke(payload: dict) -> dict:
 if __name__ == "__main__":
     app.run()
 
+# Force redeploy

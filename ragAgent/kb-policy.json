@@ -1,0 +1,17 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "bedrock:RetrieveAndGenerate",
+                "bedrock:Retrieve",
+                "bedrock:InvokeModel"
+            ],
+            "Resource": [
+                "arn:aws:bedrock:us-east-1:911268715109:knowledge-base/UGVUHIVZKU",
+                "arn:aws:bedrock:us-east-1::foundation-model/*"
+            ]
+        }
+    ]
+}

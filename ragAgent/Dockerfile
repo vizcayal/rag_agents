@@ -23,7 +23,7 @@ COPY . .
 EXPOSE 8501
 
 # Variables de entorno por defecto (App Runner las puede sobrescribir)
-ENV RUNTIME_ARN="arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-1twvtn9Ewz"
+ENV RUNTIME_ARN="arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-320L5P7elr"
 ENV REGION="us-east-1"
 
 # Healthcheck para que AWS sepa que el contenedor está vivo
