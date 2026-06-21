@@ -9,7 +9,7 @@
                 "bedrock:InvokeModel"
             ],
             "Resource": [
-                "arn:aws:bedrock:us-east-1:911268715109:knowledge-base/UGVUHIVZKU",
+                "arn:aws:bedrock:us-east-1:911268715109:knowledge-base/7UZ4IYVTXE",
                 "arn:aws:bedrock:us-east-1::foundation-model/*"
             ]
         }

@@ -41,8 +41,9 @@ async def invoke(payload: dict) -> dict:
             logger.error(f"Pipeline error: {result.get('error')}")
         
         # Format the response for AgentCore
+        # Use `or` instead of .get() default so that None answer falls through to error message
         return {
-            "response": result.get("answer", result.get("error", "No answer generated")),
+            "response": result.get("answer") or result.get("error") or "No answer generated",
             "confidence": result.get("confidence", 0.0),
             "cited_chunks": result.get("cited_chunk_ids", []),
             "status": result.get("status", "unknown"),

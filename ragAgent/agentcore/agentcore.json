@@ -16,13 +16,13 @@
       "networkMode": "PUBLIC",
       "protocol": "HTTP",
       "envVars": [
-        { "name": "KNOWLEDGE_BASE_ID", "value": "UGVUHIVZKU" },
+        { "name": "KNOWLEDGE_BASE_ID", "value": "7UZ4IYVTXE" },
         { "name": "AWS_REGION", "value": "us-east-1" }
       ],
       "policies": [
         {
           "actions": ["bedrock:Retrieve"],
-          "resources": ["arn:aws:bedrock:us-east-1:911268715109:knowledge-base/UGVUHIVZKU"]
+          "resources": ["arn:aws:bedrock:us-east-1:911268715109:knowledge-base/7UZ4IYVTXE"]
         }
       ],
       "instrumentation": {
