@@ -315,19 +315,15 @@ def render_metadata(status, confidence, citations):
         citations_html += '<div style="margin-top: 15px; font-weight: 600; font-size: 0.9rem; color: #8b949e;">References:</div>'
         for idx, c in enumerate(citations):
             decoded = urllib.parse.unquote(c)
-            citations_html += f"""
-            <div class="citation-card">
-                <div class="citation-header">📄 Ref #{idx + 1}</div>
-                <div style="color: #e6edf3; font-weight: 400; margin-bottom: 4px; font-size: 0.85rem;">"{decoded}"</div>
-            </div>
-            """
+            citations_html += f"""<div class="citation-card">
+<div class="citation-header">📄 Ref #{idx + 1}</div>
+<div style="color: #e6edf3; font-weight: 400; margin-bottom: 4px; font-size: 0.85rem;">"{decoded}"</div>
+</div>"""
     
-    st.markdown(f"""
-    <div class="meta-box">
-        <div>{badge_html}</div>
-        {citations_html}
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="meta-box">
+<div>{badge_html}</div>
+{citations_html}
+</div>""", unsafe_allow_html=True)
 
 # ==============================================================================
 # SIDEBAR DESIGN
@@ -335,35 +331,31 @@ def render_metadata(status, confidence, citations):
 with st.sidebar:
     st.markdown('<div class="status-container"><div class="pulsate-dot"></div><div class="status-text">AWS Connected</div></div>', unsafe_allow_html=True)
     
-    st.markdown("""
-    <div class="sidebar-panel">
-        <div class="sidebar-panel-title">Model</div>
-        <div class="sidebar-panel-value">🤖 Nova Lite</div>
-    </div>
-    <div class="sidebar-panel">
-        <div class="sidebar-panel-title">KB Source</div>
-        <div class="sidebar-panel-value">📚 Bedrock KB</div>
-    </div>
-    <div class="sidebar-panel">
-        <div class="sidebar-panel-title">Guardrails</div>
-        <div class="sidebar-panel-value">🛡️ LangGraph</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="sidebar-panel">
+<div class="sidebar-panel-title">Model</div>
+<div class="sidebar-panel-value">🤖 Nova Lite</div>
+</div>
+<div class="sidebar-panel">
+<div class="sidebar-panel-title">KB Source</div>
+<div class="sidebar-panel-value">📚 Bedrock KB</div>
+</div>
+<div class="sidebar-panel">
+<div class="sidebar-panel-title">Guardrails</div>
+<div class="sidebar-panel-value">🛡️ LangGraph</div>
+</div>""", unsafe_allow_html=True)
     
     st.divider()
     
     st.markdown('<div class="sidebar-panel-title">RAG Pipeline</div>', unsafe_allow_html=True)
-    st.markdown("""
-    <div class="flow-container">
-        <div class="flow-step">1. Query</div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-step active">2. Retrieve</div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-step">3. Reason</div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-step active">4. Verify</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="flow-container">
+<div class="flow-step">1. Query</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-step active">2. Retrieve</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-step">3. Reason</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-step active">4. Verify</div>
+</div>""", unsafe_allow_html=True)
 
 # ==============================================================================
 # MAIN PAGE DESIGN
@@ -373,14 +365,12 @@ st.markdown('<div class="subtitle">Grounded Q&A and citations for the EU AI Act<
 
 # Render Welcome Screen if no messages
 if not st.session_state.messages:
-    st.markdown("""
-    <div class="welcome-container">
-        <p style="color:#8b949e; line-height:1.6; margin-bottom:0;">
-            Ask questions about the EU AI Act. Answers are grounded in source documents with citations.
-        </p>
-    </div>
-    <h4 style="color:#e6edf3; font-weight:500; margin-bottom:12px; margin-top:15px;">Suggested Queries</h4>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="welcome-container">
+<p style="color:#8b949e; line-height:1.6; margin-bottom:0;">
+Ask questions about the EU AI Act. Answers are grounded in source documents with citations.
+</p>
+</div>
+<h4 style="color:#e6edf3; font-weight:500; margin-bottom:12px; margin-top:15px;">Suggested Queries</h4>""", unsafe_allow_html=True)
     
     # 2x2 grid of suggestion cards
     col1, col2 = st.columns(2)
