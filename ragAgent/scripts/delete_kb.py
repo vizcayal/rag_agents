@@ -38,6 +38,21 @@ def delete_knowledge_base():
         for ds in dss.get("dataSourceSummaries", []):
             ds_id = ds["dataSourceId"]
             print(f"Deleting Data Source: {ds_id}...")
+            try:
+                ds_detail = bedrock_agent.get_data_source(knowledgeBaseId=kb_id, dataSourceId=ds_id)["dataSource"]
+                if ds_detail.get("dataDeletionPolicy") != "RETAIN":
+                    print("Updating data deletion policy to RETAIN to prevent dependency failure on deleted vector store...")
+                    bedrock_agent.update_data_source(
+                        knowledgeBaseId=kb_id,
+                        dataSourceId=ds_id,
+                        name=ds_detail["name"],
+                        dataDeletionPolicy="RETAIN",
+                        dataSourceConfiguration=ds_detail["dataSourceConfiguration"],
+                        description=ds_detail.get("description", "")
+                    )
+            except Exception as ex:
+                print(f"Warning: Failed to retrieve or update data source details: {ex}")
+            
             bedrock_agent.delete_data_source(knowledgeBaseId=kb_id, dataSourceId=ds_id)
             print("Data Source deleted.")
     except Exception as e:
