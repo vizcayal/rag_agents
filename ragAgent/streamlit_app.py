@@ -7,7 +7,7 @@ import urllib.parse
 
 # Page configuration with a professional icon and layout
 st.set_page_config(
-    page_title="EU AI Act Explorer — Consulta Grounded",
+    page_title="EU AI Act Explorer — Grounded Query",
     page_icon="⚖️",
     layout="wide"
 )
@@ -304,35 +304,35 @@ if "suggested_query" not in st.session_state:
 # SIDEBAR DESIGN
 # ==============================================================================
 with st.sidebar:
-    st.markdown('<div class="status-container"><div class="pulsate-dot"></div><div class="status-text">Conexión AWS Activa</div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="status-container"><div class="pulsate-dot"></div><div class="status-text">AWS Connection Active</div></div>', unsafe_allow_html=True)
     
     st.markdown("""
     <div class="sidebar-panel">
-        <div class="sidebar-panel-title">Modelo de Lenguaje</div>
+        <div class="sidebar-panel-title">Language Model</div>
         <div class="sidebar-panel-value">🤖 Amazon Nova Lite</div>
     </div>
     <div class="sidebar-panel">
-        <div class="sidebar-panel-title">Base de Conocimiento</div>
+        <div class="sidebar-panel-title">Knowledge Base</div>
         <div class="sidebar-panel-value">📚 Bedrock KB (ID: 7UZ4I)</div>
     </div>
     <div class="sidebar-panel">
-        <div class="sidebar-panel-title">Filtros de Validación</div>
-        <div class="sidebar-panel-value">🛡️ Agente LangGraph</div>
+        <div class="sidebar-panel-title">Validation Filters</div>
+        <div class="sidebar-panel-value">🛡️ LangGraph Agent</div>
     </div>
     """, unsafe_allow_html=True)
     
     st.divider()
     
-    st.markdown('<div class="sidebar-panel-title">Arquitectura RAG</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-panel-title">RAG Pipeline</div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="flow-container">
-        <div class="flow-step">1. Consulta de Usuario</div>
+        <div class="flow-step">1. Query</div>
         <div class="flow-arrow">↓</div>
-        <div class="flow-step active">2. Recuperación Vectorial (AOSS)</div>
+        <div class="flow-step active">2. Retrieval (AOSS)</div>
         <div class="flow-arrow">↓</div>
-        <div class="flow-step">3. Contexto + Bedrock Nova</div>
+        <div class="flow-step">3. Reason (Nova)</div>
         <div class="flow-arrow">↓</div>
-        <div class="flow-step active">4. Verificador de Respuestas</div>
+        <div class="flow-step active">4. Validate (LangGraph)</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -340,38 +340,36 @@ with st.sidebar:
 # MAIN PAGE DESIGN
 # ==============================================================================
 st.markdown('<div class="title-gradient">EU AI Act Explorer</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Búsqueda semántica grounded y razonamiento con citación de fuentes para el Reglamento de IA en Europa</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Grounded search and citations for the EU Artificial Intelligence Act</div>', unsafe_allow_html=True)
 
 # Render Welcome Screen if no messages
 if not st.session_state.messages:
     st.markdown("""
     <div class="welcome-container">
-        <h3 style="margin-top:0; color:#e6edf3; font-weight:600;">¡Bienvenido al Explorador del Reglamento de IA de la UE!</h3>
+        <h3 style="margin-top:0; color:#e6edf3; font-weight:600;">Welcome!</h3>
         <p style="color:#8b949e; line-height:1.6; margin-bottom:0;">
-            Esta herramienta utiliza Inteligencia Artificial Generativa e indexación semántica sobre el texto oficial del 
-            <b>Reglamento de Inteligencia Artificial de la Unión Europea (AI Act)</b>. 
-            Todas las consultas son verificadas mediante un pipeline RAG (Generación Recuperada por Búsqueda) para garantizar la veracidad, 
-            citando las páginas y fragmentos exactos donde se sustenta la información.
+            Ask questions about the official EU Artificial Intelligence Act. 
+            All answers are verified against source documents to prevent hallucinations and include precise citations.
         </p>
     </div>
-    <h4 style="color:#e6edf3; font-weight:500; margin-bottom:15px; margin-top:20px;">Preguntas Recomendadas</h4>
+    <h4 style="color:#e6edf3; font-weight:500; margin-bottom:15px; margin-top:20px;">Recommended Questions</h4>
     """, unsafe_allow_html=True)
     
     # 2x2 grid of suggestion cards
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("⚖️ Prácticas Prohibidas\nVer los sistemas de IA totalmente prohibidos en la UE", key="sug_proh", use_container_width=True):
-            st.session_state.suggested_query = "¿Cuáles son las prácticas de IA prohibidas según el reglamento?"
+        if st.button("⚖️ Prohibited Practices\nView banned AI systems", key="sug_proh", use_container_width=True):
+            st.session_state.suggested_query = "What are the prohibited AI practices under the regulation?"
             st.rerun()
-        if st.button("⚠️ Sistemas de Alto Riesgo\nConsultar obligaciones para clasificaciones de alto riesgo", key="sug_risk", use_container_width=True):
-            st.session_state.suggested_query = "¿Qué sistemas de IA se consideran de alto riesgo y qué obligaciones tienen?"
+        if st.button("⚠️ High-Risk Systems\nView obligations", key="sug_risk", use_container_width=True):
+            st.session_state.suggested_query = "Which AI systems are considered high-risk and what are their obligations?"
             st.rerun()
     with col2:
-        if st.button("🗓️ Fechas de Aplicación\nVer el calendario oficial de entrada en vigor de la Ley", key="sug_dates", use_container_width=True):
-            st.session_state.suggested_query = "¿Cuándo entra en vigor y cuáles son las fechas clave del reglamento?"
+        if st.button("🗓️ Application Dates\nView timeline", key="sug_dates", use_container_width=True):
+            st.session_state.suggested_query = "When does the regulation enter into force and what are the key timeline milestones?"
             st.rerun()
-        if st.button("💸 Multas y Sanciones\nEntender los límites financieros por infracciones", key="sug_fines", use_container_width=True):
-            st.session_state.suggested_query = "¿Cuáles son las sanciones y multas económicas aplicables en caso de infracción?"
+        if st.button("💸 Fines & Penalties\nView violation costs", key="sug_fines", use_container_width=True):
+            st.session_state.suggested_query = "What are the financial penalties and fines for violations of the AI Act?"
             st.rerun()
 
 # Render Chat History
@@ -387,24 +385,24 @@ for message in st.session_state.messages:
             
             # Render custom metadata block
             if status == "passed":
-                badge_html = f'<div class="badge-passed">✓ Grounded ({int(confidence*100)}% de confianza)</div>'
+                badge_html = f'<div class="badge-passed">✓ Grounded ({int(confidence*100)}% confidence)</div>'
             elif status == "warning":
-                badge_html = f'<div class="badge-warning">⚠ Respuesta Parcial ({int(confidence*100)}% de confianza)</div>'
+                badge_html = f'<div class="badge-warning">⚠ Partial Answer ({int(confidence*100)}% confidence)</div>'
             elif status == "failed":
-                badge_html = f'<div class="badge-failed">✗ No Verificado ({int(confidence*100)}% de confianza)</div>'
+                badge_html = f'<div class="badge-failed">✗ Unverified ({int(confidence*100)}% confidence)</div>'
             else:
-                badge_html = f'<div class="badge-passed">Confianza: {int(confidence*100)}%</div>'
+                badge_html = f'<div class="badge-passed">Confidence: {int(confidence*100)}%</div>'
                 
             citations_html = ""
             if citations:
-                citations_html += '<div style="margin-top: 15px; font-weight: 600; font-size: 0.9rem; color: #8b949e;">Referencias de la Base de Conocimiento (S3 Source):</div>'
+                citations_html += '<div style="margin-top: 15px; font-weight: 600; font-size: 0.9rem; color: #8b949e;">Source References:</div>'
                 for idx, c in enumerate(citations):
                     decoded = urllib.parse.unquote(c)
                     citations_html += f"""
                     <div class="citation-card">
-                        <div class="citation-header">📄 Referencia #{idx + 1}</div>
+                        <div class="citation-header">📄 Reference #{idx + 1}</div>
                         <div style="color: #e6edf3; font-weight: 400; margin-bottom: 8px;">"{decoded}"</div>
-                        <div style="color: #8b949e; font-size: 0.78rem;">Ubicación: s3://rag-agents-docs/ai_act.pdf</div>
+                        <div style="color: #8b949e; font-size: 0.78rem;">Source: ai_act.pdf</div>
                     </div>
                     """
             
@@ -421,7 +419,7 @@ if st.session_state.suggested_query:
     prompt = st.session_state.suggested_query
     st.session_state.suggested_query = None  # Reset suggestion trigger
 else:
-    prompt = st.chat_input("Escribe tu pregunta sobre la Ley de IA de la UE...", key="chat_input")
+    prompt = st.chat_input("Ask your question about the EU AI Act...", key="chat_input")
 
 if prompt:
     # Append user prompt and render
@@ -434,7 +432,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
     
     # Query the AgentCore runtime
     with st.chat_message("assistant"):
-        with st.spinner("Buscando en el Reglamento de la Ley de IA y razonando..."):
+        with st.spinner("Searching and reasoning..."):
             try:
                 response = client.invoke_agent_runtime(
                     agentRuntimeArn=RUNTIME_ARN,
@@ -458,12 +456,12 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
                             else:
                                 result_raw += str(chunk_data)
                         elif 'internalServerException' in event:
-                            st.error(f"Error interno del servidor: {event['internalServerException']}")
+                            st.error(f"Internal Server Error: {event['internalServerException']}")
                         elif 'badRequestException' in event:
-                            st.error(f"Petición inválida: {event['badRequestException']}")
+                            st.error(f"Invalid Request: {event['badRequestException']}")
 
                 if not result_raw:
-                    st.warning("El agente devolvió una respuesta vacía.")
+                    st.warning("The agent returned an empty response.")
                     st.stop()
 
                 result = json.loads(result_raw)
@@ -477,31 +475,31 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
                 if answer is None:
                     st.write("---")
                     st.write("Raw Result from Agent:", result)
-                    answer = "No se pudo extraer una respuesta del payload del agente."
+                    answer = "Failed to extract a response from the agent payload."
 
                 # Render answer markdown
                 st.markdown(answer)
                 
                 # Render metadata block in UI
                 if status == "passed":
-                    badge_html = f'<div class="badge-passed">✓ Grounded ({int(confidence*100)}% de confianza)</div>'
+                    badge_html = f'<div class="badge-passed">✓ Grounded ({int(confidence*100)}% confidence)</div>'
                 elif status == "warning":
-                    badge_html = f'<div class="badge-warning">⚠ Respuesta Parcial ({int(confidence*100)}% de confianza)</div>'
+                    badge_html = f'<div class="badge-warning">⚠ Partial Answer ({int(confidence*100)}% confidence)</div>'
                 elif status == "failed":
-                    badge_html = f'<div class="badge-failed">✗ No Verificado ({int(confidence*100)}% de confianza)</div>'
+                    badge_html = f'<div class="badge-failed">✗ Unverified ({int(confidence*100)}% confidence)</div>'
                 else:
-                    badge_html = f'<div class="badge-passed">Confianza: {int(confidence*100)}%</div>'
+                    badge_html = f'<div class="badge-passed">Confidence: {int(confidence*100)}%</div>'
                     
                 citations_html = ""
                 if citations:
-                    citations_html += '<div style="margin-top: 15px; font-weight: 600; font-size: 0.9rem; color: #8b949e;">Referencias de la Base de Conocimiento (S3 Source):</div>'
+                    citations_html += '<div style="margin-top: 15px; font-weight: 600; font-size: 0.9rem; color: #8b949e;">Source References:</div>'
                     for idx, c in enumerate(citations):
                         decoded = urllib.parse.unquote(c)
                         citations_html += f"""
                         <div class="citation-card">
-                            <div class="citation-header">📄 Referencia #{idx + 1}</div>
+                            <div class="citation-header">📄 Reference #{idx + 1}</div>
                             <div style="color: #e6edf3; font-weight: 400; margin-bottom: 8px;">"{decoded}"</div>
-                            <div style="color: #8b949e; font-size: 0.78rem;">Ubicación: s3://rag-agents-docs/ai_act.pdf</div>
+                            <div style="color: #8b949e; font-size: 0.78rem;">Source: ai_act.pdf</div>
                         </div>
                         """
                 
@@ -524,7 +522,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
                 
             except Exception as e:
                 import traceback
-                st.error(f"Error al llamar al agente: {str(e)}")
+                st.error(f"Error calling agent: {str(e)}")
                 st.code(traceback.format_exc())
                 
             # Trigger rerun to show metadata properly in state flow
@@ -535,5 +533,5 @@ if st.session_state.messages:
     last_assistant_msg = next((m for m in reversed(st.session_state.messages) if m["role"] == "assistant"), None)
     if last_assistant_msg and "raw_payload" in last_assistant_msg:
         st.divider()
-        with st.expander("🛠️ Panel de Desarrollador — Inspección de Datos en Crudo (RAG)"):
+        with st.expander("🛠️ Developer Console — Raw RAG JSON Payload"):
             st.json(last_assistant_msg["raw_payload"])

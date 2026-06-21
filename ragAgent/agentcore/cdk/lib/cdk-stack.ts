@@ -8,7 +8,6 @@ import { CfnOutput, Stack, type StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
-import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as iam from 'aws-cdk-lib/aws-iam';
 
@@ -77,32 +76,36 @@ export class AgentCoreStack extends Stack {
     // Reference ECR Repository
     const uiRepo = ecr.Repository.fromRepositoryName(this, 'UiRepo', 'rag-agent-ui');
 
-    // Create Fargate Service with Application Load Balancer
-    const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'StreamlitService', {
-      cluster,
-      cpu: 256,
+    // Create Fargate Task Definition
+    const taskDefinition = new ecs.FargateTaskDefinition(this, 'StreamlitTaskDef', {
       memoryLimitMiB: 512,
-      desiredCount: 1,
-      publicLoadBalancer: true,
-      assignPublicIp: true,
-      taskImageOptions: {
-        image: ecs.ContainerImage.fromEcrRepository(uiRepo, 'latest'),
-        containerPort: 8501,
-        environment: {
-          RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-3AkJyICSTJ',
-          REGION: 'us-east-1',
-        }
-      }
+      cpu: 256,
     });
 
-    // Configure health check to use Streamlit's health endpoint
-    fargateService.targetGroup.configureHealthCheck({
-      path: '/_stcore/health',
-      port: '8501',
+    taskDefinition.addContainer('web', {
+      image: ecs.ContainerImage.fromEcrRepository(uiRepo, 'latest'),
+      environment: {
+        RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-3AkJyICSTJ',
+        REGION: 'us-east-1',
+      },
+      portMappings: [{ containerPort: 8501 }],
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'streamlit' }),
     });
+
+    // Create Fargate Service directly
+    const fargateService = new ecs.FargateService(this, 'StreamlitService', {
+      cluster,
+      taskDefinition,
+      desiredCount: 1,
+      assignPublicIp: true,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+    });
+
+    // Allow inbound traffic on port 8501 from anywhere
+    fargateService.connections.allowFromAnyIpv4(ec2.Port.tcp(8501), 'Allow Streamlit access');
 
     // Grant permissions to invoke Bedrock AgentCore Runtime
-    fargateService.taskDefinition.addToTaskRolePolicy(new iam.PolicyStatement({
+    taskDefinition.addToTaskRolePolicy(new iam.PolicyStatement({
       actions: [
         'bedrock-agentcore:InvokeAgentRuntime',
         'bedrock-agentcore:InvokeAgent',
@@ -112,10 +115,10 @@ export class AgentCoreStack extends Stack {
       resources: ['*']
     }));
 
-    // Output the Load Balancer URL
-    new CfnOutput(this, 'UiUrl', {
-      description: 'URL of the Streamlit UI',
-      value: `http://${fargateService.loadBalancer.loadBalancerDnsName}`,
+    // Output the service name
+    new CfnOutput(this, 'UiServiceName', {
+      description: 'Name of the Streamlit ECS Service',
+      value: fargateService.serviceName,
     });
 
     // Stack-level output
