@@ -283,7 +283,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Configuration from Environment Variables
-RUNTIME_ARN = os.environ.get("RUNTIME_ARN", "arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-3AkJyICSTJ")
+RUNTIME_ARN = os.environ.get("RUNTIME_ARN", "arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-fXo43d5cZ0")
 REGION = os.environ.get("REGION", "us-east-1")
 
 # Initialize Bedrock AgentCore/Runtime client

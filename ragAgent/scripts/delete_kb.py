@@ -7,6 +7,7 @@ REGION = "us-east-1"
 ROLE_NAME = "AgentCore-BedrockKB-Role"
 POLICY_NAME = "AgentCore-BedrockKB-Policy"
 COLLECTION_NAME = "rag-agent-kb"
+COLLECTION_GROUP_NAME = "rag-agent-kb-group"
 KB_NAME = "EU-AI-Act-KB"
 
 iam = boto3.client("iam", region_name=REGION)
@@ -167,10 +168,31 @@ def delete_iam_role():
     except Exception as e:
         print(f"Error deleting Role: {e}")
 
+def delete_aoss_collection_group():
+    print(f"Checking for OpenSearch Serverless collection group: {COLLECTION_GROUP_NAME}...")
+    try:
+        groups = aoss.list_collection_groups()
+        group_id = None
+        for g in groups.get("collectionGroupSummaries", []):
+            if g["name"] == COLLECTION_GROUP_NAME:
+                group_id = g["id"]
+                break
+        
+        if not group_id:
+            print(f"Collection group '{COLLECTION_GROUP_NAME}' not found. Skipping.")
+            return
+
+        print(f"Found Collection Group ID: {group_id}. Deleting...")
+        aoss.delete_collection_group(id=group_id)
+        print("✅ Collection group deleted successfully.")
+    except Exception as e:
+        print(f"Error deleting collection group: {e}")
+
 def main():
     print("=== Teardown / Deletion of RAG KB Resources ===")
     delete_knowledge_base()
     delete_aoss_collection()
+    delete_aoss_collection_group()
     delete_iam_role()
     print("=== Teardown complete ===")
 

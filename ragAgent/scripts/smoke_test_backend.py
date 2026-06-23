@@ -19,7 +19,7 @@ from botocore.exceptions import ClientError
 
 DEFAULT_ARN = (
     "arn:aws:bedrock-agentcore:us-east-1:911268715109:"
-    "runtime/ragAgent_MyAgent-3AkJyICSTJ"
+    "runtime/ragAgent_MyAgent-fXo43d5cZ0"
 )
 DEFAULT_REGION = "us-east-1"
 DEFAULT_PROMPT = "What is AI?"
@@ -151,4 +151,8 @@ def run_smoke_test(args) -> int:
 
 
 if __name__ == "__main__":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
     sys.exit(run_smoke_test(parse_args()))

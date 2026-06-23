@@ -1,17 +1,46 @@
 import boto3
 import sys
 
-CLUSTER_NAME = "AgentCore-ragAgent-default-UiCluster74D17A69-zuWsRVKwOaZE"
-SERVICE_NAME = "AgentCore-ragAgent-default-StreamlitServiceFCD0A2A5-62xGlzknaDvO"
 REGION = "us-east-1"
+
+def find_cluster_and_service(ecs):
+    # Find cluster
+    clusters = ecs.list_clusters().get("clusterArns", [])
+    target_cluster = None
+    for c in clusters:
+        if "AgentCore-ragAgent-default-UiCluster" in c:
+            target_cluster = c.split("/")[-1]
+            break
+            
+    if not target_cluster:
+        print("Could not find matching ECS Cluster.")
+        return None, None
+        
+    # Find service in cluster
+    services = ecs.list_services(cluster=target_cluster).get("serviceArns", [])
+    target_service = None
+    for s in services:
+        if "StreamlitService" in s:
+            target_service = s.split("/")[-1]
+            break
+            
+    if not target_service:
+        print("Could not find matching Streamlit service in cluster.")
+        return None, None
+        
+    return target_cluster, target_service
 
 def get_fargate_task_ip():
     ecs = boto3.client("ecs", region_name=REGION)
     ec2 = boto3.client("ec2", region_name=REGION)
     
+    cluster_name, service_name = find_cluster_and_service(ecs)
+    if not cluster_name or not service_name:
+        return None
+        
     # 1. List active tasks
     try:
-        response = ecs.list_tasks(cluster=CLUSTER_NAME, serviceName=SERVICE_NAME)
+        response = ecs.list_tasks(cluster=cluster_name, serviceName=service_name)
         task_arns = response.get("taskArns", [])
         if not task_arns:
             print("No tasks found running for the service.")
@@ -23,7 +52,7 @@ def get_fargate_task_ip():
         
     # 2. Describe task to get the network interface details
     try:
-        desc = ecs.describe_tasks(cluster=CLUSTER_NAME, tasks=[task_arn])
+        desc = ecs.describe_tasks(cluster=cluster_name, tasks=[task_arn])
         tasks = desc.get("tasks", [])
         if not tasks:
             print("Failed to describe the task details.")
@@ -73,6 +102,10 @@ def get_fargate_task_ip():
         return None
 
 if __name__ == "__main__":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
     ip = get_fargate_task_ip()
     if ip:
         print("\n========================================================")

@@ -14,6 +14,7 @@ REGION = "us-east-1"
 ROLE_NAME = "AgentCore-BedrockKB-Role"
 POLICY_NAME = "AgentCore-BedrockKB-Policy"
 COLLECTION_NAME = "rag-agent-kb"
+COLLECTION_GROUP_NAME = "rag-agent-kb-group"
 INDEX_NAME = "bedrock-knowledge-base-index"
 KB_NAME = "EU-AI-Act-KB"
 S3_BUCKET = "rag-agents-docs"
@@ -220,13 +221,44 @@ def create_aoss_policies(user_arn, role_arn):
                 print(f"Access policy update failed: {update_err}")
         else:
             raise e
+def create_or_get_collection_group(group_name):
+    print(f"Checking for OpenSearch Serverless collection group: {group_name}...")
+    try:
+        groups = aoss.list_collection_groups()
+        for g in groups.get("collectionGroupSummaries", []):
+            if g["name"] == group_name:
+                print(f"Collection group '{group_name}' already exists.")
+                return group_name
+    except Exception as e:
+        print(f"Warning listing collection groups: {e}")
+
+    print(f"Creating NextGen collection group '{group_name}' with standbyReplicas='DISABLED' (Cheapest options)...")
+    try:
+        res = aoss.create_collection_group(
+            name=group_name,
+            standbyReplicas="DISABLED",
+            capacityLimits={
+                "maxIndexingCapacityInOCU": 2,
+                "maxSearchCapacityInOCU": 2
+            }
+        )
+        print(f"Collection group created successfully: {res['createCollectionGroupDetail']['id']}")
+        return group_name
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ConflictException":
+            print(f"Collection group '{group_name}' already exists (conflict).")
+            return group_name
+        else:
+            raise e
 
 def create_aoss_collection():
+    create_or_get_collection_group(COLLECTION_GROUP_NAME)
     print(f"Creating OpenSearch Serverless collection: {COLLECTION_NAME}...")
     try:
         res = aoss.create_collection(
             name=COLLECTION_NAME,
             type="VECTORSEARCH",
+            collectionGroupName=COLLECTION_GROUP_NAME,
             description="Vector collection for Bedrock Knowledge Base"
         )
         collection_id = res["createCollectionDetail"]["id"]
@@ -361,8 +393,19 @@ def create_knowledge_base(role_arn, collection_arn):
         kbs = bedrock_agent.list_knowledge_bases(maxResults=50)
         for kb in kbs.get("knowledgeBaseSummaries", []):
             if kb["name"] == KB_NAME:
-                print(f"Knowledge Base '{KB_NAME}' already exists. ID: {kb['knowledgeBaseId']}")
-                return kb["knowledgeBaseId"]
+                kb_id = kb["knowledgeBaseId"]
+                print(f"Knowledge Base '{KB_NAME}' already exists. ID: {kb_id}")
+                print("Checking status of existing Knowledge Base...")
+                while True:
+                    kb_res = bedrock_agent.get_knowledge_base(knowledgeBaseId=kb_id)
+                    status = kb_res["knowledgeBase"]["status"]
+                    print(f"Existing Knowledge Base status: {status}...")
+                    if status == "ACTIVE":
+                        break
+                    elif status in ("FAILED", "DELETE_FAILED"):
+                        raise RuntimeError(f"Existing Knowledge Base is in failed state: {status}")
+                    time.sleep(5)
+                return kb_id
     except Exception as e:
         print(f"Warning checking existing KBs: {e}")
 
@@ -392,6 +435,19 @@ def create_knowledge_base(role_arn, collection_arn):
         )
         kb_id = res["knowledgeBase"]["knowledgeBaseId"]
         print(f"Successfully created Knowledge Base. ID: {kb_id}")
+        
+        # Poll for ACTIVE status
+        print("Waiting for Knowledge Base to become ACTIVE...")
+        while True:
+            kb_res = bedrock_agent.get_knowledge_base(knowledgeBaseId=kb_id)
+            status = kb_res["knowledgeBase"]["status"]
+            print(f"Knowledge Base status: {status}...")
+            if status == "ACTIVE":
+                break
+            elif status in ("FAILED", "DELETE_FAILED"):
+                raise RuntimeError(f"Knowledge Base creation failed with status: {status}")
+            time.sleep(5)
+            
         return kb_id
     except Exception as e:
         print(f"Failed to create Knowledge Base: {e}")
@@ -459,7 +515,53 @@ def sync_data_source(kb_id, ds_id):
     except Exception as e:
         print(f"Warning starting ingestion: {e}")
 
+def update_runtime_execution_role_policy(kb_id):
+    print("Updating AgentCore Runtime Execution Role policy to allow bedrock:Retrieve...")
+    iam_client = boto3.client("iam", region_name=REGION)
+    try:
+        roles = iam_client.list_roles(MaxItems=100)
+        target_role_name = None
+        for role in roles.get("Roles", []):
+            if "ApplicationAgentMyAgentRu" in role["RoleName"] and "ragAgent-defaul" in role["RoleName"]:
+                target_role_name = role["RoleName"]
+                break
+        
+        if not target_role_name:
+            print("Warning: Could not find AgentCore Runtime Execution Role.")
+            return
+            
+        print(f"Found runtime execution role: {target_role_name}")
+        
+        policy_name = "AgentCore-Runtime-KB-Retrieve-Policy"
+        policy_doc = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "bedrock:Retrieve"
+                    ],
+                    "Resource": [
+                        f"arn:aws:bedrock:us-east-1:{sts.get_caller_identity()['Account']}:knowledge-base/{kb_id}"
+                    ]
+                }
+            ]
+        }
+        
+        iam_client.put_role_policy(
+            RoleName=target_role_name,
+            PolicyName=policy_name,
+            PolicyDocument=json.dumps(policy_doc)
+        )
+        print("Successfully attached bedrock:Retrieve policy to the runtime execution role.")
+    except Exception as e:
+        print(f"Error updating runtime role policy: {e}")
+
 def main():
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
     print("--- Starting Bedrock KB Creation Automation ---")
     user_arn = get_current_user_arn()
     print(f"Current User/Role ARN: {user_arn}")
@@ -476,6 +578,7 @@ def main():
     time.sleep(10)
     
     kb_id = create_knowledge_base(role_arn, collection_arn)
+    update_runtime_execution_role_policy(kb_id)
     ds_id = create_data_source(kb_id)
     sync_data_source(kb_id, ds_id)
     

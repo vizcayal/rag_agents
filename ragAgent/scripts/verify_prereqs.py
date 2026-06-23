@@ -163,18 +163,26 @@ def check_knowledge_base_id() -> tuple[bool, str]:
     kb_entries = [e for e in env_vars if e.get("name") == "KNOWLEDGE_BASE_ID"]
 
     if not kb_entries:
-        return False, (
-            f"KNOWLEDGE_BASE_ID not found in runtimes[0].envVars. "
-            f"Add: {{\"name\": \"KNOWLEDGE_BASE_ID\", \"value\": \"{EXPECTED_KB_ID}\"}}"
-        )
+        return False, "KNOWLEDGE_BASE_ID not found in runtimes[0].envVars."
 
     actual_value = kb_entries[0].get("value", "")
-    if actual_value != EXPECTED_KB_ID:
-        return False, (
-            f"KNOWLEDGE_BASE_ID is {actual_value!r}, expected {EXPECTED_KB_ID!r}"
-        )
-
-    return True, f"KNOWLEDGE_BASE_ID = {actual_value!r}"
+    
+    import boto3
+    try:
+        bedrock_agent = boto3.client("bedrock-agent", region_name=EXPECTED_REGION)
+        kbs = bedrock_agent.list_knowledge_bases(maxResults=50)
+        found_kb_id = None
+        for kb in kbs.get("knowledgeBaseSummaries", []):
+            if kb["name"] == "EU-AI-Act-KB":
+                found_kb_id = kb["knowledgeBaseId"]
+                break
+        if not found_kb_id:
+            return False, "Knowledge Base 'EU-AI-Act-KB' not found on AWS Bedrock."
+        if actual_value != found_kb_id:
+            return False, f"KNOWLEDGE_BASE_ID is {actual_value!r}, but live ID is {found_kb_id!r}"
+        return True, f"KNOWLEDGE_BASE_ID = {actual_value!r} matches live active KB"
+    except Exception as e:
+        return False, f"Failed to verify active KB on AWS Bedrock: {e}"
 
 
 # ---------------------------------------------------------------------------
