@@ -189,6 +189,10 @@ def delete_aoss_collection_group():
         print(f"Error deleting collection group: {e}")
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
     print("=== Teardown / Deletion of RAG KB Resources ===")
     delete_knowledge_base()
     delete_aoss_collection()
