@@ -73,6 +73,21 @@ async def _call_mcp(tool: str, arguments: dict) -> dict:
     return json.loads(content[0]["text"])
 
 
+def is_matching_id(id1: str, id2: str) -> bool:
+    """Check if two chunk IDs match, ignoring URL-encoding and common prefixes like '1:0:'."""
+    norm1 = urllib.parse.unquote(id1).strip()
+    norm2 = urllib.parse.unquote(id2).strip()
+    if norm1 == norm2:
+        return True
+    
+    def clean(x: str) -> str:
+        if ":" in x:
+            return x.split(":")[-1]
+        return x
+        
+    return clean(norm1) == clean(norm2)
+
+
 # ---------------------------------------------------------------------------
 # Validator agent
 # ---------------------------------------------------------------------------
@@ -100,8 +115,6 @@ class ValidatorAgent:
         print("[ValidatorAgent] Validating answer and citations...")
 
         issues: list[str] = []
-        # Normalize keys in chunk_map to handle URL-encoded IDs from Bedrock
-        chunk_map = {urllib.parse.unquote(c.chunk_id): c for c in retrieved_chunks}
 
         # ----------------------------------------------------------------
         # 1. Citation presence check
@@ -115,14 +128,21 @@ class ValidatorAgent:
             cid = cid_raw.replace("CHUNK ", "").replace("[", "").replace("]", "").strip()
             cid = urllib.parse.unquote(cid)
 
-            if cid not in chunk_map:
+            # Find matching chunk in retrieved chunks
+            matched_chunk = None
+            for c in retrieved_chunks:
+                if is_matching_id(c.chunk_id, cid):
+                    matched_chunk = c
+                    break
+
+            if not matched_chunk:
                 invalid_citations.append(cid_raw)
                 citation_checks.append(
                     CitationCheck(chunk_id=cid_raw, used_in_answer=True, grounding_score=0.0)
                 )
             else:
                 citation_checks.append(
-                    CitationCheck(chunk_id=cid, used_in_answer=True, grounding_score=1.0)
+                    CitationCheck(chunk_id=matched_chunk.chunk_id, used_in_answer=True, grounding_score=1.0)
                 )
 
         if invalid_citations:
@@ -143,7 +163,7 @@ class ValidatorAgent:
                     "chunks": [
                         {"chunk_id": c.chunk_id, "text": c.text}
                         for c in retrieved_chunks
-                        if c.chunk_id in reasoner_output.cited_chunk_ids
+                        if any(is_matching_id(c.chunk_id, cited_id) for cited_id in reasoner_output.cited_chunk_ids)
                     ],
                 },
             )
@@ -153,7 +173,7 @@ class ValidatorAgent:
                 score = score_item["score"]
                 # Update existing CitationCheck
                 for cc in citation_checks:
-                    if cc.chunk_id == cid:
+                    if is_matching_id(cc.chunk_id, cid):
                         cc.grounding_score = score
                         if score < self.GROUNDING_THRESHOLD:
                             issues.append(

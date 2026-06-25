@@ -9,6 +9,7 @@ import os
 from typing import Any
 
 import boto3
+import urllib.parse
 from pydantic import BaseModel
 
 
@@ -50,7 +51,7 @@ async def _search(query: str, top_k: int) -> dict:
     
     results = [
         {
-            "chunk_id":    r["metadata"].get("x-amz-bedrock-kb-chunk-id", ""),
+            "chunk_id":    urllib.parse.unquote(r["metadata"].get("x-amz-bedrock-kb-chunk-id", "")),
             "document_id": r["location"]["s3Location"]["uri"],
             "text":        r["content"]["text"],
             "score":       r["score"],
