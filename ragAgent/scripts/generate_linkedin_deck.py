@@ -112,7 +112,7 @@ def create_deck():
             "⚙️ Orquestador Backend: Agente LangGraph integrado con APIs en Bedrock.",
             "🔍 Vector Store: Base de datos vectorial en Amazon OpenSearch Serverless (AOSS).",
             "📄 Ingesta de Datos: PDFs almacenados en S3 sincronizados con Bedrock Knowledge Base.",
-            "🔐 Redes y Coseguro: Balanceador ALB expone el Frontend y políticas IAM gestionan los accesos."
+            "🔐 Redes y Seguridad: Balanceador ALB expone el Frontend y políticas IAM gestionan los accesos."
         ]
     )
 
@@ -191,7 +191,7 @@ def create_deck():
     )
     
     # Save presentation
-    filename = "Despliegue_RAG_AWS.pptx"
+    filename = "Despliegue_RAG_AWS_v2.pptx"
     prs.save(filename)
     print(f"Presentation saved successfully as '{filename}'")
 

@@ -85,7 +85,7 @@ export class AgentCoreStack extends Stack {
     taskDefinition.addContainer('web', {
       image: ecs.ContainerImage.fromEcrRepository(uiRepo, 'latest'),
       environment: {
-        RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-fXo43d5cZ0',
+        RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-UoF89OCdQ2',
         REGION: 'us-east-1',
       },
       portMappings: [{ containerPort: 8501 }],

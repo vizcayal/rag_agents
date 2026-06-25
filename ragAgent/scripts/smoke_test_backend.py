@@ -19,7 +19,7 @@ from botocore.exceptions import ClientError
 
 DEFAULT_ARN = (
     "arn:aws:bedrock-agentcore:us-east-1:911268715109:"
-    "runtime/ragAgent_MyAgent-fXo43d5cZ0"
+    "runtime/ragAgent_MyAgent-UoF89OCdQ2"
 )
 DEFAULT_REGION = "us-east-1"
 DEFAULT_PROMPT = "What is AI?"

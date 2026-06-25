@@ -4,9 +4,9 @@
       "resources": {
         "runtimes": {
           "MyAgent": {
-            "runtimeId": "ragAgent_MyAgent-3AkJyICSTJ",
-            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-3AkJyICSTJ",
-            "roleArn": "arn:aws:iam::911268715109:role/AgentCore-ragAgent-defaul-ApplicationAgentMyAgentRu-G7yhcuS8wW7H"
+            "runtimeId": "ragAgent_MyAgent-UoF89OCdQ2",
+            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-1:911268715109:runtime/ragAgent_MyAgent-UoF89OCdQ2",
+            "roleArn": "arn:aws:iam::911268715109:role/AgentCore-ragAgent-defaul-ApplicationAgentMyAgentRu-KagTiJHMulbR"
           }
         },
         "stackName": "AgentCore-ragAgent-default"
