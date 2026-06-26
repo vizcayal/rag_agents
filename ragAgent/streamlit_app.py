@@ -309,20 +309,9 @@ def render_metadata(status, confidence, citations):
         badge_html = f'<div class="badge-failed">✗ Unverified ({int(confidence*100)}%)</div>'
     else:
         badge_html = f'<div class="badge-passed">Confidence: {int(confidence*100)}%</div>'
-        
-    citations_html = ""
-    if citations:
-        citations_html += '<div style="margin-top: 15px; font-weight: 600; font-size: 0.9rem; color: #8b949e;">References:</div>'
-        for idx, c in enumerate(citations):
-            decoded = urllib.parse.unquote(c)
-            citations_html += f"""<div class="citation-card">
-<div class="citation-header">📄 Ref #{idx + 1}</div>
-<div style="color: #e6edf3; font-weight: 400; margin-bottom: 4px; font-size: 0.85rem;">"{decoded}"</div>
-</div>"""
     
     st.markdown(f"""<div class="meta-box">
 <div>{badge_html}</div>
-{citations_html}
 </div>""", unsafe_allow_html=True)
 
 # ==============================================================================
@@ -490,10 +479,4 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
             # Trigger rerun to show metadata properly in state flow
             st.rerun()
 
-# Expandable developer drawer for telemetry/raw JSON payload at the bottom
-if st.session_state.messages:
-    last_assistant_msg = next((m for m in reversed(st.session_state.messages) if m["role"] == "assistant"), None)
-    if last_assistant_msg and "raw_payload" in last_assistant_msg:
-        st.divider()
-        with st.expander("🛠️ Dev Console — Raw JSON"):
-            st.json(last_assistant_msg["raw_payload"])
+
